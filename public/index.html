@@ -4,16 +4,36 @@
 <head>
     <meta charset="UTF-8">
     <title>ParkTrail Planner</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-    <h1>Welcome to ParkTrail Planner</h1>
-    <div id="map"></div>
+    <header>
+        <h1>ParkTrail Planner</h1>
+        <p>Explore U.S. National Parks and Plan Your Adventure</p>
+    </header>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="script.js"></script>
+    <main>
+        <!-- Sidebar listing parks -->
+        <div id="sidebar">
+            <h2>National Parks</h2>
+            <div id="park-list">Loading parks...</div>
+        </div>
+
+        <!-- Interactive map -->
+        <div id="map"></div>
+    </main>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <!-- Your app’s main JS -->
+    <script src="js/main.js" defer></script>
 </body>
 
 </html>
