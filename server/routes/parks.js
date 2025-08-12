@@ -40,5 +40,125 @@ router.post('/trips', async (req, res) => {
     res.status(500).json({ error: 'Failed to save trip' });
   }
 });
+// GET /api/parks/trips
+router.get('/trips', async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM trips ORDER BY start_date');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching trips:', err);
+    res.status(500).json({ error: 'Failed to fetch trips' });
+  }
+});
+
+
+// --- ITINERARY ROUTES ---
+
+// GET all itinerary items for a trip
+// GET /api/parks/trips/:id/items
+router.get('/trips/:id/items', async (req, res) => {
+  try {
+    const q = `
+      SELECT * FROM itinerary_items
+      WHERE trip_id = $1
+      ORDER BY item_date, start_time NULLS LAST, sort_order, item_id
+    `;
+    const r = await db.query(q, [req.params.id]);
+    res.json(r.rows);
+  } catch (err) {
+    console.error('Error fetching items:', err);
+    res.status(500).json({ error: 'Failed to fetch items' });
+  }
+});
+
+// POST create new itinerary item
+// POST /api/parks/trips/:id/items
+router.post('/trips/:id/items', async (req, res) => {
+  const { park_code, item_date, start_time, end_time, title, notes, sort_order } = req.body;
+  if (!item_date || !title) return res.status(400).json({ error: 'item_date and title are required' });
+
+  try {
+    const q = `
+      INSERT INTO itinerary_items
+        (trip_id, park_code, item_date, start_time, end_time, title, notes, sort_order)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+      RETURNING *
+    `;
+    const r = await db.query(q, [
+      req.params.id,
+      park_code || null,
+      item_date,
+      start_time || null,
+      end_time || null,
+      title,
+      notes || null,
+      sort_order ?? 0
+    ]);
+    res.status(201).json(r.rows[0]);
+  } catch (err) {
+    console.error('Error creating item:', err);
+    res.status(500).json({ error: 'Failed to create item' });
+  }
+});
+
+// PUT update itinerary item
+// PUT /api/parks/trips/:id/items/:itemId
+router.put('/trips/:id/items/:itemId', async (req, res) => {
+  const { park_code, item_date, start_time, end_time, title, notes, sort_order } = req.body;
+
+  try {
+    const q = `
+      UPDATE itinerary_items
+      SET park_code=$1, item_date=$2, start_time=$3, end_time=$4, title=$5, notes=$6, sort_order=$7
+      WHERE trip_id=$8 AND item_id=$9
+      RETURNING *
+    `;
+    const r = await db.query(q, [
+      park_code || null,
+      item_date,
+      start_time || null,
+      end_time || null,
+      title,
+      notes || null,
+      sort_order ?? 0,
+      req.params.id,
+      req.params.itemId
+    ]);
+    if (!r.rowCount) return res.status(404).json({ error: 'Item not found' });
+    res.json(r.rows[0]);
+  } catch (err) {
+    console.error('Error updating item:', err);
+    res.status(500).json({ error: 'Failed to update item' });
+  }
+});
+
+// DELETE itinerary item
+// DELETE /api/parks/trips/:id/items/:itemId
+router.delete('/trips/:id/items/:itemId', async (req, res) => {
+  try {
+    const r = await db.query(
+      `DELETE FROM itinerary_items WHERE trip_id=$1 AND item_id=$2`,
+      [req.params.id, req.params.itemId]
+    );
+    if (!r.rowCount) return res.status(404).json({ error: 'Item not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Error deleting item:', err);
+    res.status(500).json({ error: 'Failed to delete item' });
+  }
+});
+
+// DELETE /api/parks/trips/:id
+router.delete('/trips/:id', async (req, res) => {
+  try {
+    const r = await db.query('DELETE FROM trips WHERE trip_id = $1', [req.params.id]);
+    if (!r.rowCount) return res.status(404).json({ error: 'Trip not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Error deleting trip:', err);
+    res.status(500).json({ error: 'Failed to delete trip' });
+  }
+});
+
 
 module.exports = router;
