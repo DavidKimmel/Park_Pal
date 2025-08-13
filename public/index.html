@@ -8,95 +8,98 @@
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-
-    <!-- Prevent favicon 404 in dev -->
     <link rel="icon" href="data:," />
-
-    <!-- Your CSS -->
     <link rel="stylesheet" href="style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
 </head>
 
 <body>
     <header>
-        <h1>ParkTrail Planner</h1>
+        <h1>ParkPal Planner</h1>
         <p>Explore U.S. National Parks and Plan Your Adventure</p>
+        <button id="openTripPlanner">+ Plan a Trip</button>
     </header>
 
     <main>
-        <!-- Left: National Parks list -->
+        <!-- Sidebar: Park List -->
         <aside id="sidebar">
             <h2>National Parks</h2>
             <div id="park-list">Loading parks...</div>
         </aside>
 
-        <!-- Middle: Trip creation + saved trips + itinerary -->
-        <section id="trip-panel">
-            <h2>Create a Trip</h2>
-            <form id="tripForm">
-                <label for="tripName">Trip name</label>
-                <input type="text" id="tripName" required />
-
-                <label for="startDate">Start date</label>
-                <input type="date" id="startDate" required />
-
-                <label for="endDate">End date</label>
-                <input type="date" id="endDate" required />
-
-                <button type="submit">Save Trip</button>
-            </form>
-            <div id="tripMessage" aria-live="polite"></div>
-
-            <section id="saved-trips" style="margin-top:1rem;">
-                <h3>Saved Trips</h3>
-                <ul id="tripsList">
-                    <li>Loading…</li>
-                </ul>
-            </section>
-
-            <section id="itinerary-panel" style="display:none; padding-top:1rem;">
-                <h3>Itinerary for: <span id="tripTitle"></span></h3>
-
-                <form id="itemForm" style="display:grid; gap:.5rem; max-width:520px;">
-                    <label for="itemDate">Date</label>
-                    <input type="date" id="itemDate" required />
-
-                    <div style="display:flex; gap:.5rem;">
-                        <div style="flex:1;">
-                            <label for="startTime">Start time</label>
-                            <input type="time" id="startTime" />
-                        </div>
-                        <div style="flex:1;">
-                            <label for="endTime">End time</label>
-                            <input type="time" id="endTime" />
-                        </div>
-                    </div>
-
-                    <label for="itemTitle">Activity title</label>
-                    <input type="text" id="itemTitle" placeholder="Hike Angels Landing" required />
-
-                    <label for="itemParkCode">Park code (optional)</label>
-                    <input type="text" id="itemParkCode" placeholder="e.g., arch, zion" />
-
-                    <label for="itemNotes">Notes</label>
-                    <textarea id="itemNotes" rows="2" placeholder="Trailhead, drive time, gear…"></textarea>
-
-                    <button type="submit">Add Item</button>
-                </form>
-
-                <ul id="itemsList" style="margin-top:1rem;">
-                    <li>Select a trip to view itinerary.</li>
-                </ul>
-            </section>
-        </section>
-
-        <!-- Right: Map -->
+        <!-- Map Container -->
         <div id="map"></div>
     </main>
+
+    <!-- Overlay Background -->
+    <div class="overlay hidden" id="overlay"></div>
+
+    <!-- Trip Planner Slide-out Panel -->
+    <div class="trip-panel" id="trip-panel">
+        <button class="close-btn" id="closeTripPanel">&times;</button>
+        <h2>Create a Trip</h2>
+        <form id="tripForm">
+            <label for="tripName">Trip name</label>
+            <input type="text" id="tripName" required />
+
+            <label for="startDate">Start date</label>
+            <input type="date" id="startDate" required />
+
+            <label for="endDate">End date</label>
+            <input type="date" id="endDate" required />
+
+            <button type="submit">Save Trip</button>
+        </form>
+
+        <div id="tripMessage" aria-live="polite"></div>
+
+        <section id="saved-trips" style="margin-top:1rem;">
+            <h3>Saved Trips</h3>
+            <ul id="tripsList">
+                <li>Loading…</li>
+            </ul>
+        </section>
+
+        <section id="itinerary-panel" style="display:none; padding-top:1rem;">
+            <h3>Itinerary for: <span id="tripTitle"></span></h3>
+
+            <form id="itemForm" style="display:grid; gap:.5rem; max-width:520px;">
+                <label for="itemDate">Date</label>
+                <input type="date" id="itemDate" required />
+
+                <div style="display:flex; gap:.5rem;">
+                    <div style="flex:1;">
+                        <label for="startTime">Start time</label>
+                        <input type="time" id="startTime" />
+                    </div>
+                    <div style="flex:1;">
+                        <label for="endTime">End time</label>
+                        <input type="time" id="endTime" />
+                    </div>
+                </div>
+
+                <label for="itemTitle">Activity title</label>
+                <input type="text" id="itemTitle" placeholder="Hike Angels Landing" required />
+
+                <label for="itemParkCode">Park code (optional)</label>
+                <input type="text" id="itemParkCode" placeholder="e.g., arch, zion" />
+
+                <label for="itemNotes">Notes</label>
+                <textarea id="itemNotes" rows="2" placeholder="Trailhead, drive time, gear…"></textarea>
+
+                <button type="submit">Add Item</button>
+            </form>
+
+            <ul id="itemsList" style="margin-top:1rem;">
+                <li>Select a trip to view itinerary.</li>
+            </ul>
+        </section>
+    </div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-    <!-- App JS (served from /public/js/main.js) -->
+    <!-- App JS -->
     <script src="js/main.js" defer></script>
 </body>
 

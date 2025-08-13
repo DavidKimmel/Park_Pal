@@ -7,7 +7,7 @@ require('dotenv').config();
 const NPS_API_KEY = process.env.NPS_API_KEY;
 const BASE_URL = 'https://developer.nps.gov/api/v1/parks';
 
-// GET /api/parks
+// ------------------ PARK LIST ------------------
 router.get('/', async (req, res) => {
   try {
     const response = await axios.get(BASE_URL, {
@@ -25,6 +25,39 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/parks/extra/:code
+router.get('/extra/:code', async (req, res) => {
+  const parkCode = req.params.code;
+  const endpoints = ['activities', 'alerts', 'events', 'feespasses', 'visitorcenters', 'thingstodo', 'multimedia/videos'];
+
+  try {
+    const results = await Promise.all(
+      endpoints.map(endpoint =>
+        axios.get(`https://developer.nps.gov/api/v1/${endpoint}`, {
+          params: {
+            parkCode,
+            api_key: NPS_API_KEY
+          }
+        }).then(r => ({ [endpoint]: r.data }))
+          .catch(e => {
+            console.warn(`Failed to fetch ${endpoint} for ${parkCode}: ${e.message}`);
+            return { [endpoint]: null };
+          })
+      )
+    );
+
+    const merged = results.reduce((acc, curr) => ({ ...acc, ...curr }), {});
+    res.json(merged);
+  } catch (err) {
+    console.error('Error in /extra/:code route:', err.message);
+    res.status(500).json({ error: 'Failed to fetch extra park data' });
+  }
+});
+
+
+// ------------------ TRIP ROUTES ------------------
+
+// POST create trip
 router.post('/trips', async (req, res) => {
   const { trip_name, start_date, end_date } = req.body;
   console.log('Received trip:', { trip_name, start_date, end_date });
@@ -36,11 +69,12 @@ router.post('/trips', async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error('Error saving trip:', err);  // full error for diagnosis
+    console.error('Error saving trip:', err);
     res.status(500).json({ error: 'Failed to save trip' });
   }
 });
-// GET /api/parks/trips
+
+// GET all trips
 router.get('/trips', async (req, res) => {
   try {
     const result = await db.query('SELECT * FROM trips ORDER BY start_date');
@@ -51,11 +85,21 @@ router.get('/trips', async (req, res) => {
   }
 });
 
+// DELETE a trip and its items
+router.delete('/trips/:id', async (req, res) => {
+  try {
+    const r = await db.query('DELETE FROM trips WHERE trip_id = $1', [req.params.id]);
+    if (!r.rowCount) return res.status(404).json({ error: 'Trip not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Error deleting trip:', err);
+    res.status(500).json({ error: 'Failed to delete trip' });
+  }
+});
 
-// --- ITINERARY ROUTES ---
+// ------------------ ITINERARY ROUTES ------------------
 
 // GET all itinerary items for a trip
-// GET /api/parks/trips/:id/items
 router.get('/trips/:id/items', async (req, res) => {
   try {
     const q = `
@@ -72,7 +116,6 @@ router.get('/trips/:id/items', async (req, res) => {
 });
 
 // POST create new itinerary item
-// POST /api/parks/trips/:id/items
 router.post('/trips/:id/items', async (req, res) => {
   const { park_code, item_date, start_time, end_time, title, notes, sort_order } = req.body;
   if (!item_date || !title) return res.status(400).json({ error: 'item_date and title are required' });
@@ -102,7 +145,6 @@ router.post('/trips/:id/items', async (req, res) => {
 });
 
 // PUT update itinerary item
-// PUT /api/parks/trips/:id/items/:itemId
 router.put('/trips/:id/items/:itemId', async (req, res) => {
   const { park_code, item_date, start_time, end_time, title, notes, sort_order } = req.body;
 
@@ -133,7 +175,6 @@ router.put('/trips/:id/items/:itemId', async (req, res) => {
 });
 
 // DELETE itinerary item
-// DELETE /api/parks/trips/:id/items/:itemId
 router.delete('/trips/:id/items/:itemId', async (req, res) => {
   try {
     const r = await db.query(
@@ -147,18 +188,5 @@ router.delete('/trips/:id/items/:itemId', async (req, res) => {
     res.status(500).json({ error: 'Failed to delete item' });
   }
 });
-
-// DELETE /api/parks/trips/:id
-router.delete('/trips/:id', async (req, res) => {
-  try {
-    const r = await db.query('DELETE FROM trips WHERE trip_id = $1', [req.params.id]);
-    if (!r.rowCount) return res.status(404).json({ error: 'Trip not found' });
-    res.json({ ok: true });
-  } catch (err) {
-    console.error('Error deleting trip:', err);
-    res.status(500).json({ error: 'Failed to delete trip' });
-  }
-});
-
 
 module.exports = router;
