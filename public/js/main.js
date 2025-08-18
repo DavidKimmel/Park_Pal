@@ -1,10 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // ------------------ MAP ------------------
   const mapEl = document.getElementById('map');
-  let map, markerByCode = {};
-
+  const searchInput = document.getElementById('parkSearch');
+  let map, markerByCode = {}, allParks = [];
+  const initialCenter = [39.8283, -98.5795];
+  const initialZoom = 4;
   if (mapEl) {
-    map = L.map('map').setView([39.8283, -98.5795], 4); // Center USA
+    map = L.map('map').setView([39.8283, -98.5795], 4);
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
@@ -12,39 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
     fetch('/api/parks')
       .then(res => res.json())
       .then(parks => {
-        const listContainer = document.getElementById('park-list');
-        if (listContainer) listContainer.innerHTML = '';
-
-        parks.forEach(park => {
-          const lat = parseFloat(park.latitude);
-          const lon = parseFloat(park.longitude);
-          const code = park.parkCode || park.code || null;
-
-          if (!isNaN(lat) && !isNaN(lon)) {
-            const marker = L.marker([lat, lon])
-              .addTo(map)
-              .on('click', () => showParkPopup(park));
-
-            if (code) markerByCode[code] = marker;
-
-            if (listContainer) {
-              const div = document.createElement('div');
-              div.className = 'park-item';
-              div.textContent = park.fullName;
-              if (code) div.dataset.code = code;
-              div.addEventListener('click', () => {
-                map.flyTo([lat, lon], 8);
-                marker.fire('click');
-                const codeInput = document.getElementById('itemParkCode');
-                const panel = document.getElementById('itinerary-panel');
-                if (code && codeInput && panel && panel.style.display !== 'none') {
-                  codeInput.value = code;
-                }
-              });
-              listContainer.appendChild(div);
-            }
-          }
-        });
+        allParks = parks;
+        renderParkList(parks);
       })
       .catch(err => {
         console.error('Error loading parks:', err);
@@ -52,11 +23,59 @@ document.addEventListener('DOMContentLoaded', () => {
         if (listContainer) listContainer.textContent = 'Failed to load parks.';
       });
   }
+  const resetBtn = document.getElementById('resetMapBtn');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      map.setView(initialCenter, initialZoom);
+    });
+  }
 
-  // ------------------ POPUP ENHANCED ------------------
+
+  function renderParkList(parks) {
+    const listContainer = document.getElementById('park-list');
+    if (!listContainer) return;
+    listContainer.innerHTML = '';
+
+    parks.forEach(park => {
+      const lat = parseFloat(park.latitude);
+      const lon = parseFloat(park.longitude);
+      const code = park.parkCode || park.code || null;
+
+      if (!isNaN(lat) && !isNaN(lon)) {
+        if (!markerByCode[code]) {
+          const marker = L.marker([lat, lon])
+            .addTo(map)
+            .on('click', () => showParkPopup(park));
+          if (code) markerByCode[code] = marker;
+        }
+
+        const div = document.createElement('div');
+        div.className = 'park-item';
+        div.textContent = park.fullName;
+        if (code) div.dataset.code = code;
+        div.addEventListener('click', () => {
+          map.flyTo([lat, lon], 8);
+          markerByCode[code].fire('click');
+          const codeInput = document.getElementById('itemParkCode');
+          const panel = document.getElementById('itinerary-panel');
+          if (code && codeInput && panel && panel.style.display !== 'none') {
+            codeInput.value = code;
+          }
+        });
+        listContainer.appendChild(div);
+      }
+    });
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      const query = searchInput.value.toLowerCase();
+      const filtered = allParks.filter(park => park.fullName.toLowerCase().includes(query));
+      renderParkList(filtered);
+    });
+  }
+
   async function showParkPopup(park) {
-    const lat = parseFloat(park.latitude);
-    const lon = parseFloat(park.longitude);
     const code = park.parkCode || park.code;
     const marker = markerByCode[code];
 
@@ -99,6 +118,23 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentTripId = null;
   let lastTrips = [];
 
+  let editingTripId = null;
+
+  function populateTripFormForEdit(trip) {
+    editingTripId = trip.trip_id ?? trip.id;
+    document.getElementById('tripName').value = trip.trip_name;
+    document.getElementById('startDate').value = trip.start_date?.split('T')[0] || '';
+    document.getElementById('endDate').value = trip.end_date?.split('T')[0] || '';
+
+    // Open the form panel if it's not already open
+    const panel = document.getElementById('trip-panel');
+    if (panel) panel.classList.add('active');
+
+    const overlay = document.getElementById('overlay');
+    if (overlay) overlay.classList.remove('hidden');
+  }
+
+
   async function loadTrips() {
     const list = document.getElementById('tripsList');
     if (!list) return;
@@ -124,10 +160,21 @@ document.addEventListener('DOMContentLoaded', () => {
           <button class="linklike selectTripBtn" data-id="${tripId}">
             ${t.trip_name} (${start} → ${end})
           </button>
+          <button class="editTripBtn" data-id="${tripId}" title="Edit trip">✏️</button>
           <button class="deleteTripBtn" data-id="${tripId}" title="Delete trip">🗑️</button>
         `;
+
         list.appendChild(li);
       });
+
+      list.querySelectorAll('.editTripBtn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-id');
+          const trip = lastTrips.find(tr => String(tr.trip_id ?? tr.id) === String(id));
+          if (trip) populateTripFormForEdit(trip);
+        });
+      });
+
 
       list.querySelectorAll('.selectTripBtn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -176,33 +223,42 @@ document.addEventListener('DOMContentLoaded', () => {
     loadItems(currentTripId);
   }
 
-  const tripForm = document.getElementById('tripForm');
-  if (tripForm) {
-    tripForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const payload = {
-        trip_name: document.getElementById('tripName')?.value.trim(),
-        start_date: document.getElementById('startDate')?.value,
-        end_date: document.getElementById('endDate')?.value
-      };
+  tripForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const payload = {
+    trip_name: document.getElementById('tripName')?.value.trim(),
+    start_date: document.getElementById('startDate')?.value,
+    end_date: document.getElementById('endDate')?.value
+  };
 
-      try {
-        const res = await fetch('/api/parks/trips', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || 'Failed to save trip');
+  try {
+    let res;
+    if (editingTripId) {
+      res = await fetch(`/api/parks/trips/${editingTripId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } else {
+      res = await fetch('/api/parks/trips', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    }
 
-        tripForm.reset();
-        await loadTrips();
-      } catch (err) {
-        console.error(err);
-        alert(err.message);
-      }
-    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || 'Failed to save trip');
+
+    tripForm.reset();
+    editingTripId = null;
+    await loadTrips();
+  } catch (err) {
+    console.error(err);
+    alert(err.message);
   }
+});
+
 
   async function loadItems(tripId) {
     const ul = document.getElementById('itemsList');

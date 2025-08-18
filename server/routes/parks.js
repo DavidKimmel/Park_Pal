@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
   try {
     const response = await axios.get(BASE_URL, {
       params: {
-        limit: 50,
+        limit: 500,
         api_key: NPS_API_KEY
       }
     });

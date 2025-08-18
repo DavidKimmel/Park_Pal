@@ -13,6 +13,20 @@ header {
     justify-content: space-between;
     flex-wrap: wrap;
 }
+.header-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.logo {
+    height: 60px;
+    margin-right: 1rem;
+}
+
+.header-text {
+    flex-grow: 1;
+}
 
 header h1 {
     margin: 0;
@@ -164,4 +178,24 @@ ul li {
 
 .linklike:hover {
     color: #1b5e20;
+}
+
+.reset-map-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    /* changed from left to right */
+    z-index: 1000;
+    background-color: #2e7d32;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.reset-map-btn:hover {
+    background-color: #1b5e20;
 }

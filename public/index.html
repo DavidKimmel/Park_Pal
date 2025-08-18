@@ -15,20 +15,29 @@
 
 <body>
     <header>
-        <h1>ParkPal Planner</h1>
-        <p>Explore U.S. National Parks and Plan Your Adventure</p>
-        <button id="openTripPlanner">+ Plan a Trip</button>
+        <div class="header-content">
+            <img src="img/parkpal.png" alt="ParkPal Logo" class="logo" />
+            <div class="header-text">
+                <h1>ParkPal Planner</h1>
+                <p>Explore U.S. National Parks and Plan Your Adventure</p>
+            </div>
+            <button id="openTripPlanner">+ Plan a Trip</button>
+        </div>
     </header>
 
     <main>
         <!-- Sidebar: Park List -->
         <aside id="sidebar">
             <h2>National Parks</h2>
+            <!-- SEARCH -->
+            <input type="text" id="parkSearch" placeholder="Search parks..." /><p></p>
             <div id="park-list">Loading parks...</div>
         </aside>
-
+        
         <!-- Map Container -->
-        <div id="map"></div>
+        <div id="map">
+            <button id="resetMapBtn" class="reset-map-btn">Reset Map View</button>
+        </div>
     </main>
 
     <!-- Overlay Background -->
